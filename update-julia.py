@@ -65,21 +65,24 @@ class JuliaInstaller:
         tar.extractall("/opt")
         tar.close()
 
-    def update_symlink(self):
+    def update_symlinks(self):
         if self.install_link.is_symlink():
             self.install_link.unlink()
 
         self.install_link.symlink_to(self.install_dir)
 
+        if not self.bin_link.exists():
+            self.bin_link.symlink_to(self.install_link / "bin" / "julia")
+
     def update_julia(self):
         try:
             self.fetch_version()
         except Exception as e:
-            raise
+            logging.error(e)
             return False
 
         if self.install_dir.is_dir():
-            self.update_symlink()
+            self.update_symlinks()
             return True
 
         try:
@@ -88,10 +91,9 @@ class JuliaInstaller:
             self.fetch_tarball()
             self.validate_tarball()
             self.extract_tarball()
-            self.update_symlink()
+            self.update_symlinks()
         except Exception as e:
             logging.error(e)
-            raise
             return False
 
         return True
@@ -116,6 +118,10 @@ class JuliaInstaller:
     def install_link(self):
         return Path("/opt/julia")
 
+    @property
+    def bin_link(self):
+        return Path("/usr/local/bin/julia")
+
 
 # see https://stackoverflow.com/a/59056837/993881
 def compute_file_checksum(filename, alg="md5") -> str:
@@ -132,9 +138,15 @@ def compute_file_checksum(filename, alg="md5") -> str:
     return file_hash.hexdigest()
 
 
+def err_exit(msg, code=1):
+    print(msg, file=sys.stderr)
+    sys.exit(code)
+
+
 def main():
     installer = JuliaInstaller()
-    installer.update_julia()
+    if not installer.update_julia():
+        err_exit("Failed to update Julia.")
 
 
 if __name__ == "__main__":
