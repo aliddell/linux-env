@@ -1,15 +1,16 @@
 #!/usr/bin/env python3.8
 
-import hashlib
 import logging
 from pathlib import Path
 import re
-import sys
 import tarfile
 from tempfile import mkdtemp
 
 import requests
 from bs4 import BeautifulSoup as Soup
+
+from envutils.files import compute_file_checksum
+from envutils.misc import err_exit
 
 
 class JuliaInstaller:
@@ -121,26 +122,6 @@ class JuliaInstaller:
     @property
     def bin_link(self):
         return Path("/usr/local/bin/julia")
-
-
-# see https://stackoverflow.com/a/59056837/993881
-def compute_file_checksum(filename, alg="md5") -> str:
-    if alg not in hashlib.algorithms_available:
-        raise ValueError(f"Unrecognized or unavailable algorithm: {alg}")
-
-    chunk_size = 8192
-
-    with open(filename, "rb") as f:
-        file_hash = hashlib.md5()
-        while chunk := f.read(chunk_size):
-            file_hash.update(chunk)
-
-    return file_hash.hexdigest()
-
-
-def err_exit(msg, code=1):
-    print(msg, file=sys.stderr)
-    sys.exit(code)
 
 
 def main():
