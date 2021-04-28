@@ -6,17 +6,19 @@ import re
 import tarfile
 from tempfile import mkdtemp
 
+import click
 import requests
 from bs4 import BeautifulSoup as Soup
 
-from envutils.files import compute_file_checksum
-from envutils.misc import err_exit
+from utils.files import compute_file_checksum
+from utils.misc import err_exit
 
 
 class JuliaInstaller:
-    def __init__(self):
+    def __init__(self, install_globally=False):
         self.tmpdir = Path(mkdtemp())
         self.major = self.minor = self.patch = ""
+        self.install_globally = install_globally
 
     def fetch_version(self):
         url = "https://julialang.org/downloads/"
@@ -63,7 +65,7 @@ class JuliaInstaller:
 
     def extract_tarball(self):
         tar = tarfile.open(self.tmpdir / self.tarball_filename)
-        tar.extractall("/opt")
+        tar.extractall(self.base_dir)
         tar.close()
 
     def update_symlinks(self):
@@ -100,6 +102,10 @@ class JuliaInstaller:
         return True
 
     @property
+    def base_dir(self) -> Path:
+        return Path("/opt") if self.install_globally else Path.home() / ".local"
+
+    @property
     def ver(self):
         return f"{self.major}.{self.minor}.{self.patch}"
 
@@ -113,22 +119,21 @@ class JuliaInstaller:
 
     @property
     def install_dir(self):
-        return Path(f"/opt/julia-{self.ver}")
+        return self.base_dir / f"julia-{self.ver}"
 
     @property
     def install_link(self):
-        return Path("/opt/julia")
+        return self.base_dir / "julia"
 
     @property
     def bin_link(self):
-        return Path("/usr/local/bin/julia")
+        return Path("/usr/local/bin/julia") if self.install_globally else self.base_dir / "bin" / "julia"
 
 
-def main():
-    installer = JuliaInstaller()
+@click.command("update")
+@click.option("--install-globally", prompt=False, is_flag=True, default=False)
+def update(install_globally):
+    installer = JuliaInstaller(install_globally)
     if not installer.update_julia():
         err_exit("Failed to update Julia.")
 
-
-if __name__ == "__main__":
-    main()
