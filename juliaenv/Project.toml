@@ -1,0 +1,4 @@
+name = "juliaenv"
+uuid = "9f00ac8e-b0ca-45e8-989a-5165f09e93cd"
+authors = ["Alan Liddell <aliddell@path-robotics.com>"]
+version = "0.1.0"
